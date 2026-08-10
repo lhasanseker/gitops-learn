@@ -1,228 +1,170 @@
-\# GitOps \& IaC Öğrenme Notlarım
+← \[README'ye dön](../README.md) | \[◀ Önceki: Self-Healing \& DR](10-self-healing-disaster-recovery.md)
 
 
 
-Bu repository, geliştirdiğim \*\*GitOps \& Infrastructure as Code (IaC)\*\* projesinde
-
-öğrendiğim kavramları kendi cümlelerimle açıklamak ve öğrenme sürecimi
-
-belgelemek amacıyla hazırlanmıştır.
+\# 11. Referans Projeler \& İleri Seviye Konular
 
 
 
-Bu repo çalışan projenin kendisi değildir.
-
-Burada projenin nasıl çalıştığını, kullandığım teknolojilerin ne işe yaradığını,
-
-karşılaştığım sorunları ve yaptığım testleri notlarım şeklinde açıklıyorum.
+Bu projede kendi script'imle "pull-based GitOps"u basit şekilde simüle ettim. Ancak endüstride GitOps denince akla gelen asıl araç ekosistemi çok daha olgun. Bu bölüm, o ekosistemi tanımak ve bir sonraki öğrenme adımını planlamak için hazırlandı.
 
 
 
-\## Çalışan Proje
+\## 11.1 Neden Argo CD / FluxCD?
 
 
 
-Uygulamasını yaptığım asıl proje:
+Kendi `reconcile.sh` script'im çalışıyor ama production'da yetersiz kalacak noktalar var:
 
 
 
-\*\*\[gitops-iac-project](https://github.com/lhasanseker/gitops-iac-project)\*\*
+| İhtiyaç | Benim Script'im | Argo CD / Flux |
+
+|---------|------------------|-----------------|
+
+| Sürekli reconciliation | Cron ile periyodik | Gerçek zamanlıya yakın, event-driven |
+
+| Sağlık kontrolü (health check) | Yok | Var — kaynak "Healthy/Degraded/Progressing" durumu izlenir |
+
+| Görselleştirme | Yok | Argo CD: zengin bir web UI, senkronizasyon diff'i |
+
+| Otomatik rollback | Yok | Var (Flux + Kustomize/Helm ile) |
+
+| Çoklu ortam (dev/staging/prod) yönetimi | Manuel | Kustomize overlay / Helm values ile yapılandırılmış |
+
+| Secret yönetimi | Yok | Sealed Secrets, SOPS, External Secrets Operator entegrasyonu |
+
+| Kubernetes-native | Hayır (VM tabanlı) | Evet — CRD'ler (Application, Kustomization, HelmRelease) |
+
+
+
+\## 11.2 Argo CD vs FluxCD — Kısa Karşılaştırma
+
+
+
+| | \*\*Argo CD\*\* | \*\*FluxCD\*\* |
+
+|---|---|---|
+
+| Arayüz | Zengin web UI, görsel diff | Çoğunlukla CLI/Git odaklı, UI opsiyonel |
+
+| Kurulum modeli | Tek başına controller + UI | Modüler controller'lar (source, kustomize, helm, notification) |
+
+| Çoklu-tenant | App-of-Apps deseni | Native Kustomization/HelmRelease katmanlaması |
+
+| Helm desteği | Yerleşik | Standart + OCI tabanlı Helm chart desteği |
+
+| Öğrenme eğrisi | UI sayesinde başlangıç için kolay | Git/CLI'a aşinaysanız doğal geliyor |
+
+
+
+> İkisi de aynı temel prensibi uygular: \*\*Git = istenen durum, controller = gözlemci ve uygulayıcı.\*\* Repo yapıları da (bkz. aşağıdaki `examples/`) neredeyse birebir aynı mantıkla kurulabiliyor.
+
+
+
+\## 11.3 Bu Repoya Eklediğim Kavramsal Örnekler
+
+
+
+Gerçek bir cluster'a bağlı olmasa da, iki aracın nasıl yapılandırıldığını görmek için `examples/` klasörüne minimal örnekler ekledim:
+
+
+
+\- \[`examples/argocd/application.yaml`](../examples/argocd/application.yaml) — bir Argo CD `Application` CRD'si
+
+\- \[`examples/flux/kustomization.yaml`](../examples/flux/kustomization.yaml) — bir Flux `Kustomization` CRD'si
+
+\- \[`examples/kustomize/`](../examples/kustomize/) — `base` + `overlays/{dev,prod}` deseniyle çoklu ortam yönetimi
+
+
+
+\## 11.4 Kustomize \& Helm: "Ne Zaman Hangisi?"
+
+
+
+| | \*\*Kustomize\*\* | \*\*Helm\*\* |
+
+|---|---|---|
+
+| Yaklaşım | Template'siz, "patch" tabanlı (overlay) | Template motoru (Go templates), parametrik |
+
+| Öğrenme eğrisi | Düşük | Orta — chart yazmayı gerektirir |
+
+| En uygun senaryo | Aynı manifestin ortama göre küçük farklarla değişmesi | Paylaşılabilir, versiyonlanabilir, parametrik paketler (chart) dağıtmak |
+
+| Argo CD/Flux desteği | Native | Native |
+
+
+
+\## 11.5 App-of-Apps Deseni (Argo CD)
+
+
+
+Çok sayıda uygulamayı tek tek elle tanımlamak yerine, \*\*bir "üst" Application'ın diğer Application'ları yönetmesi\*\* deseni:
+
+
+
+```mermaid
+
+flowchart TD
+
+&#x20;   ROOT\[Root Application<br/>app-of-apps] --> A1\[Application: uptime-kuma]
+
+&#x20;   ROOT --> A2\[Application: monitoring-stack]
+
+&#x20;   ROOT --> A3\[Application: ingress-nginx]
+
+&#x20;   A1 --> K8S1\[(Kubernetes Kaynakları)]
+
+&#x20;   A2 --> K8S2\[(Kubernetes Kaynakları)]
+
+&#x20;   A3 --> K8S3\[(Kubernetes Kaynakları)]
+
+```
+
+
+
+Bu, tek bir `git push` ile onlarca uygulamanın tutarlı şekilde bootstrap edilmesini sağlıyor.
+
+
+
+\## 11.6 İncelediğim / İncelenmesi Değerli Açık Kaynak Referanslar
+
+
+
+Bu repoyu hazırlarken GitOps repo yapıları konusunda şu kaynaklara baktım; benzer bir yolda ilerleyenlere de öneriyorum:
+
+
+
+\- \*\*\[cloudogu/gitops-patterns](https://github.com/cloudogu/gitops-patterns)\*\* — GitOps repo desenleri, bootstrap/linking/nesting/templating yaklaşımlarının kapsamlı bir taksonomisi.
+
+\- \*\*\[cloudogu/gitops-playground](https://github.com/cloudogu/gitops-playground)\*\* — Argo CD ve Flux'u aynı anda deneyebileceğiniz, sıfırdan kurulabilen bir GitOps sandbox'ı.
+
+\- \*\*\[schnatterer/argocd-autopilot-example](https://github.com/schnatterer)\*\* — `argocd-autopilot` ile bootstrap edilmiş örnek bir Argo CD repo yapısı.
+
+\- \*\*\[onedr0p/cluster-template](https://github.com/onedr0p/cluster-template)\*\* — Flux ile yönetilen, gerçek dünyada kullanılan popüler bir "home-ops" mono-repo şablonu.
+
+\- \*\*Argo CD resmi örnekleri\*\* — `argoproj` organizasyonu altındaki örnek uygulama repoları, App-of-Apps deseninin referans uygulaması.
+
+
+
+\## 11.7 Bir Sonraki Öğrenme Hedeflerim
+
+
+
+\- \[ ] Yerel bir Kubernetes cluster'ında (kind/minikube) Argo CD kurup bu repodaki Uptime Kuma'yı Helm chart olarak deploy etmek
+
+\- \[ ] Aynı senaryoyu FluxCD ile tekrarlayıp iki aracı doğrudan karşılaştırmak
+
+\- \[ ] Sealed Secrets veya SOPS ile GitOps'ta secret yönetimini öğrenmek (Git'e düz metin secret koymamak kritik bir konu)
+
+\- \[ ] Argo Rollouts ile canary/blue-green \*\*progressive delivery\*\* denemek
+
+\- \[ ] Policy-as-code için OPA/Gatekeeper veya Kyverno ile GitOps akışına politika kontrolü eklemek
 
 
 
 \---
 
-
-
-\# 1. Projenin Amacı
-
-
-
-Bu projedeki temel amacım bir Linux sunucusunun altyapısını mümkün olduğunca
-
-kod ile yönetmeyi öğrenmekti.
-
-
-
-Normalde bir sunucu kurulduğunda:
-
-
-
-\- işletim sistemi hazırlanır,
-
-\- gerekli programlar kurulur,
-
-\- Docker yüklenir,
-
-\- web sunucusu yapılandırılır,
-
-\- güvenlik ayarları yapılır,
-
-\- uygulamalar çalıştırılır.
-
-
-
-Bunların hepsini her sunucu için elle yapmak yerine,
-
-aynı işlemleri kod ile tekrar uygulanabilir hale getirmeyi öğrendim.
-
-
-
-Projede genel olarak şu yapıyı kurdum:
-
-
-
-1\. \*\*Vagrant\*\* ile Ubuntu sanal sunucusunun nasıl oluşturulacağını tanımladım.
-
-2\. \*\*VirtualBox\*\* üzerinde Ubuntu sanal makinesi çalıştırdım.
-
-3\. \*\*Ansible\*\* ile sunucunun yapılandırılmasını otomatikleştirdim.
-
-4\. \*\*Docker\*\* kullanarak Uptime Kuma'yı container içerisinde çalıştırdım.
-
-5\. \*\*Nginx\*\* ile Uptime Kuma'ya erişimi yönettim.
-
-6\. \*\*UFW ve Fail2ban\*\* ile temel sunucu güvenliği uyguladım.
-
-7\. \*\*GitHub Actions\*\* ile altyapı kodlarını kontrol eden CI sistemi oluşturdum.
-
-8\. \*\*Pull tabanlı GitOps\*\* mantığını uyguladım.
-
-9\. Bir servis bozulduğunda tekrar ayağa kaldırılmasını sağlayan
-
-&#x20;  \*\*self-healing\*\* mantığını test ettim.
-
-10\. Sanal sunucuyu tamamen silip tekrar oluşturarak
-
-&#x20;   \*\*disaster recovery\*\* senaryosunu test ettim.
-
-
-
-Bu çalışma sayesinde sadece araçları kullanmayı değil,
-
-araçların birbirleriyle nasıl bağlantılı çalıştığını anlamaya çalıştım.
-
-\---
-
-
-
-\# 2. Genel Mimari
-
-
-
-Projeyi ilk öğrenirken en çok karıştırdığım konulardan biri
-
-\*\*WSL, Vagrant, VirtualBox ve Ansible'ın birbirleriyle ilişkisi\*\* oldu.
-
-
-
-Hazırladığım ilk mimari şeması:
-
-
-
-!\[GitOps Genel Mimari](images/sema.png)
-
-
-
-\## Sistemin Genel Yapısı
-
-
-
-Projede Windows bilgisayarım üzerinde iki farklı taraf bulunuyor:
-
-
-
-```text
-
-&#x20;                        WINDOWS 11
-
-&#x20;                            │
-
-&#x20;             ┌──────────────┴──────────────┐
-
-&#x20;             │                             │
-
-&#x20;             ▼                             ▼
-
-&#x20;           Vagrant                        WSL
-
-&#x20;             │                             │
-
-&#x20;             ▼                          Ansible
-
-&#x20;        VirtualBox                         │
-
-&#x20;             │                             │
-
-&#x20;             ▼                             │
-
-&#x20;       Ubuntu Sanal Sunucu ◄────── SSH ────┘
-
-&#x20;             │
-
-&#x20;             ├── Docker
-
-&#x20;             ├── Nginx
-
-&#x20;             ├── Uptime Kuma
-
-&#x20;             ├── UFW
-
-&#x20;             └── Fail2ban
-
-\---
-
-
-
-\# 3. Infrastructure as Code (IaC) Nedir?
-
-
-
-Infrastructure as Code, kısaca \*\*IaC\*\*, sunucu ve altyapı ayarlarının
-
-elle yapılması yerine kod dosyalarıyla tanımlanmasıdır.
-
-
-
-Ben bunu şu şekilde anladım:
-
-
-
-Normal yöntemde yeni bir sunucu aldığımda tek tek:
-
-
-
-\- Ubuntu kurarım,
-
-\- kullanıcıları ayarlarım,
-
-\- Docker kurarım,
-
-\- Nginx kurarım,
-
-\- güvenlik ayarlarını yaparım,
-
-\- uygulamaları çalıştırırım.
-
-
-
-Bunları elle yapmak mümkündür.
-
-
-
-Fakat sunucu silinirse veya aynı yapıdan başka bir sunucu kurmak istersem
-
-aynı işlemleri tekrar hatırlayıp tek tek yapmam gerekir.
-
-
-
-IaC yaklaşımında ise:
-
-
-
-```text
-
-Altyapının nasıl olması gerektiğini
-
-kod dosyalarında tanımlarım.
+⬅ \[README'ye dön](../README.md)
 

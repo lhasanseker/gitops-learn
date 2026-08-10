@@ -1,0 +1,17 @@
+# Vagrant
+.vagrant/
+*.box
+
+# Ansible
+*.retry
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Kustomize build output
+*.rendered.yaml

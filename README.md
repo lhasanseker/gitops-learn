@@ -1,152 +1,123 @@
-← \[README'ye dön](../README.md) | \[◀ Önceki: Self-Healing \& DR](10-self-healing-disaster-recovery.md)
-
-
-
-\# 11. Referans Projeler \& İleri Seviye Konular
-
-
-
-Bu projede kendi script'imle "pull-based GitOps"u basit şekilde simüle ettim. Ancak endüstride GitOps denince akla gelen asıl araç ekosistemi çok daha olgun. Bu bölüm, o ekosistemi tanımak ve bir sonraki öğrenme adımını planlamak için hazırlandı.
-
-
-
-\## 11.1 Neden Argo CD / FluxCD?
-
-
-
-Kendi `reconcile.sh` script'im çalışıyor ama production'da yetersiz kalacak noktalar var:
-
-
-
-| İhtiyaç | Benim Script'im | Argo CD / Flux |
-
-|---------|------------------|-----------------|
-
-| Sürekli reconciliation | Cron ile periyodik | Gerçek zamanlıya yakın, event-driven |
-
-| Sağlık kontrolü (health check) | Yok | Var — kaynak "Healthy/Degraded/Progressing" durumu izlenir |
-
-| Görselleştirme | Yok | Argo CD: zengin bir web UI, senkronizasyon diff'i |
-
-| Otomatik rollback | Yok | Var (Flux + Kustomize/Helm ile) |
-
-| Çoklu ortam (dev/staging/prod) yönetimi | Manuel | Kustomize overlay / Helm values ile yapılandırılmış |
-
-| Secret yönetimi | Yok | Sealed Secrets, SOPS, External Secrets Operator entegrasyonu |
-
-| Kubernetes-native | Hayır (VM tabanlı) | Evet — CRD'ler (Application, Kustomization, HelmRelease) |
-
-
-
-\## 11.2 Argo CD vs FluxCD — Kısa Karşılaştırma
-
-
-
-| | \*\*Argo CD\*\* | \*\*FluxCD\*\* |
-
-|---|---|---|
-
-| Arayüz | Zengin web UI, görsel diff | Çoğunlukla CLI/Git odaklı, UI opsiyonel |
-
-| Kurulum modeli | Tek başına controller + UI | Modüler controller'lar (source, kustomize, helm, notification) |
-
-| Çoklu-tenant | App-of-Apps deseni | Native Kustomization/HelmRelease katmanlaması |
-
-| Helm desteği | Yerleşik | Standart + OCI tabanlı Helm chart desteği |
-
-| Öğrenme eğrisi | UI sayesinde başlangıç için kolay | Git/CLI'a aşinaysanız doğal geliyor |
-
-
-
-> İkisi de aynı temel prensibi uygular: \*\*Git = istenen durum, controller = gözlemci ve uygulayıcı.\*\* Repo yapıları da (bkz. aşağıdaki `examples/`) neredeyse birebir aynı mantıkla kurulabiliyor.
-
-
-
-\## 11.3 Bu Repoya Eklediğim Kavramsal Örnekler
-
-
-
-Gerçek bir cluster'a bağlı olmasa da, iki aracın nasıl yapılandırıldığını görmek için `examples/` klasörüne minimal örnekler ekledim:
-
-
-
-\- \[`examples/argocd/application.yaml`](../examples/argocd/application.yaml) — bir Argo CD `Application` CRD'si
-
-\- \[`examples/flux/kustomization.yaml`](../examples/flux/kustomization.yaml) — bir Flux `Kustomization` CRD'si
-
-\- \[`examples/kustomize/`](../examples/kustomize/) — `base` + `overlays/{dev,prod}` deseniyle çoklu ortam yönetimi
-
-
-
-\## 11.4 Kustomize \& Helm: "Ne Zaman Hangisi?"
-
-
-
-| | \*\*Kustomize\*\* | \*\*Helm\*\* |
-
-|---|---|---|
-
-| Yaklaşım | Template'siz, "patch" tabanlı (overlay) | Template motoru (Go templates), parametrik |
-
-| Öğrenme eğrisi | Düşük | Orta — chart yazmayı gerektirir |
-
-| En uygun senaryo | Aynı manifestin ortama göre küçük farklarla değişmesi | Paylaşılabilir, versiyonlanabilir, parametrik paketler (chart) dağıtmak |
-
-| Argo CD/Flux desteği | Native | Native |
-
-
-
-\## 11.5 App-of-Apps Deseni (Argo CD)
-
-
-
-Çok sayıda uygulamayı tek tek elle tanımlamak yerine, \*\*bir "üst" Application'ın diğer Application'ları yönetmesi\*\* deseni:
-
-
+# GitOps & Infrastructure as Code — Öğrenme Günlüğü
+
+![status](https://img.shields.io/badge/durum-aktif-brightgreen)
+![license](https://img.shields.io/badge/lisans-MIT-blue)
+![topic](https://img.shields.io/badge/konu-GitOps%20%7C%20IaC%20%7C%20Kubernetes-informational)
+![level](https://img.shields.io/badge/seviye-başlangıç→orta-yellow)
+
+> Bu repo, **[gitops-iac-project](https://github.com/lhasanseker/gitops-iac-project)** adlı çalışan projeyi geliştirirken edindiğim GitOps ve IaC bilgisini yapılandırılmış notlar halinde belgelediğim bir **öğrenme arşividir**. Amaç, hem kendi geri dönüşüm kaynağım olması hem de aynı yolda ilerleyen başkalarına rehberlik etmesi.
+
+---
+
+## 📌 İçindekiler
+
+| # | Bölüm | Açıklama |
+|---|-------|----------|
+| 1 | [Projenin Amacı](docs/01-giris.md) | Neden bu projeyi yaptım, ne öğrenmeyi hedefledim |
+| 2 | [Genel Mimari](docs/02-mimari.md) | Vagrant, WSL, VirtualBox, Ansible ilişkisi (Mermaid diyagramlı) |
+| 3 | [IaC Nedir?](docs/03-iac-nedir.md) | Infrastructure as Code kavramı, kendi cümlelerimle |
+| 4 | [Vagrant & VirtualBox](docs/04-vagrant-virtualbox.md) | Sanal sunucu tanımı ve provisioning |
+| 5 | [Ansible ile Konfigürasyon](docs/05-ansible.md) | Playbook, role, idempotency |
+| 6 | [Docker & Nginx](docs/06-docker-nginx.md) | Uptime Kuma container'ı, reverse proxy |
+| 7 | [Sunucu Güvenliği](docs/07-guvenlik.md) | UFW, Fail2ban, temel hardening |
+| 8 | [CI ile Kod Kontrolü](docs/08-ci-cd.md) | GitHub Actions, lint/validate pipeline |
+| 9 | [GitOps: Push vs Pull](docs/09-gitops-pull-based.md) | Pull tabanlı GitOps mantığı, Argo CD & Flux karşılaştırması |
+| 10 | [Self-Healing & Disaster Recovery](docs/10-self-healing-disaster-recovery.md) | Servis kurtarma ve tam yıkıp-yeniden-kurma testleri |
+| 11 | [Referans Projeler & İleri Seviye Konular](docs/11-referans-projeler.md) | Kustomize, Helm, App-of-Apps, progressive delivery, incelenecek örnek repolar |
+
+---
+
+## 🗺️ Sistem Mimarisi (özet)
 
 ```mermaid
-
 flowchart TD
+    subgraph WIN["Windows 11 Host"]
+        VAGRANT[Vagrant]
+        WSL[WSL2]
+    end
 
-&#x20;   ROOT\[Root Application<br/>app-of-apps] --> A1\[Application: uptime-kuma]
+    subgraph VM["Ubuntu Sanal Sunucu"]
+        DOCKER[Docker]
+        NGINX[Nginx Reverse Proxy]
+        UPTIME[Uptime Kuma]
+        UFW[UFW Firewall]
+        F2B[Fail2ban]
+    end
 
-&#x20;   ROOT --> A2\[Application: monitoring-stack]
+    ANSIBLE[Ansible Playbooks]
+    GH[GitHub Actions - CI]
+    REPO[(Git Repository)]
 
-&#x20;   ROOT --> A3\[Application: ingress-nginx]
+    VAGRANT -->|VirtualBox provider| VM
+    WSL -->|SSH| VM
+    WSL --> ANSIBLE
+    ANSIBLE -->|configure| VM
+    DOCKER --> UPTIME
+    NGINX --> UPTIME
+    UFW --> VM
+    F2B --> VM
 
-&#x20;   A1 --> K8S1\[(Kubernetes Kaynakları)]
+    REPO -->|push| GH
+    GH -->|validate & lint| REPO
+    REPO -.->|pull-based reconcile| VM
 
-&#x20;   A2 --> K8S2\[(Kubernetes Kaynakları)]
-
-&#x20;   A3 --> K8S3\[(Kubernetes Kaynakları)]
-
+    style REPO fill:#2b6cb0,color:#fff
+    style GH fill:#38a169,color:#fff
 ```
 
+Detaylı anlatım için: [`docs/02-mimari.md`](docs/02-mimari.md)
 
+---
 
-Bu, tek bir `git push` ile onlarca uygulamanın tutarlı şekilde bootstrap edilmesini sağlıyor.
+## 🧰 Kullanılan Araçlar
 
+| Katman | Araç | Ne İşe Yarar |
+|--------|------|---------------|
+| Sanallaştırma | **Vagrant + VirtualBox** | Tekrarlanabilir sanal sunucu tanımı |
+| Konfigürasyon Yönetimi | **Ansible** | Sunucu kurulumunu kod ile otomatikleştirme |
+| Konteynerleştirme | **Docker** | Uygulamaları izole ortamda çalıştırma |
+| Erişim / Proxy | **Nginx** | Servislere güvenli erişim yönlendirme |
+| Güvenlik | **UFW, Fail2ban** | Temel ağ ve brute-force koruması |
+| CI | **GitHub Actions** | Altyapı kodunu otomatik doğrulama |
+| GitOps Mantığı | **Pull-based reconciliation** | Git'i tek doğruluk kaynağı (single source of truth) olarak kullanma |
 
+> 💡 Bu repo öğrenme amaçlı olarak **Argo CD veya Flux gibi bir GitOps operatörü kullanmıyor**; pull-mantığı manuel/cron tabanlı script ile simüle ediliyor. Gerçek dünyada bu iş genelde Argo CD veya Flux'a devredilir — bkz. [`docs/11-referans-projeler.md`](docs/11-referans-projeler.md).
 
-\## 11.6 İncelediğim / İncelenmesi Değerli Açık Kaynak Referanslar
+---
 
+## 📂 Klasör Yapısı
 
+```text
+gitops-learn/
+├── docs/                     # Konu bazlı öğrenme notları (bu repo)
+├── examples/                 # Argo CD / Flux / Kustomize kavramsal örnekleri
+│   ├── argocd/
+│   ├── flux/
+│   └── kustomize/
+│       ├── base/
+│       └── overlays/{dev,prod}/
+├── images/                    # Diyagram ve ekran görüntüleri
+├── .github/
+│   ├── workflows/ci.yml       # Markdown lint + link check
+│   └── ISSUE_TEMPLATE/
+├── CONTRIBUTING.md
+└── LICENSE
+```
 
-Bu repoyu hazırlarken GitOps repo yapıları konusunda şu kaynaklara baktım; benzer bir yolda ilerleyenlere de öneriyorum:
+---
 
+## 🚀 Çalışan Proje
 
+Bu repo bir **rapor/not deposudur**, çalışan kodun kendisi değildir. Gerçek altyapı kodu:
 
-\- \*\*\[cloudogu/gitops-patterns](https://github.com/cloudogu/gitops-patterns)\*\* — GitOps repo desenleri, bootstrap/linking/nesting/templating yaklaşımlarının kapsamlı bir taksonomisi.
+➡️ **[lhasanseker/gitops-iac-project](https://github.com/lhasanseker/gitops-iac-project)**
 
-\- \*\*\[cloudogu/gitops-playground](https://github.com/cloudogu/gitops-playground)\*\* — Argo CD ve Flux'u aynı anda deneyebileceğiniz, sıfırdan kurulabilen bir GitOps sandbox'ı.
+---
 
-\- \*\*\[schnatterer/argocd-autopilot-example](https://github.com/schnatterer)\*\* — `argocd-autopilot` ile bootstrap edilmiş örnek bir Argo CD repo yapısı.
+## 🤝 Katkı
 
-\- \*\*\[onedr0p/cluster-template](https://github.com/onedr0p/cluster-template)\*\* — Flux ile yönetilen, gerçek dünyada kullanılan popüler bir "home-ops" mono-repo şablonu.
+Yazım/anlatım hataları, eksik konular veya öneri için lütfen [CONTRIBUTING.md](CONTRIBUTING.md) dosyasına bakın ve bir issue açın.
 
-\- \*\*Argo CD resmi örnekleri\*\* — `argoproj` organizasyonu altındaki örnek uygulama repoları, App-of-Apps deseninin referans uygulaması.
+## 📄 Lisans
 
-
-
-
-
+Bu içerik [MIT Lisansı](LICENSE) ile paylaşılmıştır — dilediğiniz gibi kullanabilir, fork'layıp kendi notlarınızı ekleyebilirsiniz.

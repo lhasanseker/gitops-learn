@@ -1,0 +1,33 @@
+# Kavramsal örnek — çalışan bir cluster'a bağlı değildir.
+# Amaç: Argo CD'nin bir "Application" kaynağını nasıl tanımladığını göstermek.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: uptime-kuma
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/lhasanseker/gitops-learn.git
+    targetRevision: main
+    path: examples/kustomize/overlays/prod
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true       # Git'ten silinen kaynakları cluster'dan da kaldır
+      selfHeal: true     # Cluster'da elle yapılan bir sapmayı otomatik düzelt
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

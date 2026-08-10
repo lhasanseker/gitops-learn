@@ -1,0 +1,9 @@
+{
+  "ignorePatterns": [
+    { "pattern": "^http://localhost" },
+    { "pattern": "^https://kubernetes.default.svc" }
+  ],
+  "retryOn429": true,
+  "retryCount": 3,
+  "timeout": "20s"
+}

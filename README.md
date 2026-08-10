@@ -170,3 +170,59 @@ Projede Windows bilgisayarım üzerinde iki farklı taraf bulunuyor:
 
 &#x20;             └── Fail2ban
 
+\---
+
+
+
+\# 3. Infrastructure as Code (IaC) Nedir?
+
+
+
+Infrastructure as Code, kısaca \*\*IaC\*\*, sunucu ve altyapı ayarlarının
+
+elle yapılması yerine kod dosyalarıyla tanımlanmasıdır.
+
+
+
+Ben bunu şu şekilde anladım:
+
+
+
+Normal yöntemde yeni bir sunucu aldığımda tek tek:
+
+
+
+\- Ubuntu kurarım,
+
+\- kullanıcıları ayarlarım,
+
+\- Docker kurarım,
+
+\- Nginx kurarım,
+
+\- güvenlik ayarlarını yaparım,
+
+\- uygulamaları çalıştırırım.
+
+
+
+Bunları elle yapmak mümkündür.
+
+
+
+Fakat sunucu silinirse veya aynı yapıdan başka bir sunucu kurmak istersem
+
+aynı işlemleri tekrar hatırlayıp tek tek yapmam gerekir.
+
+
+
+IaC yaklaşımında ise:
+
+
+
+```text
+
+Altyapının nasıl olması gerektiğini
+
+kod dosyalarında tanımlarım.
+

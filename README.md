@@ -148,23 +148,5 @@ Bu repoyu hazırlarken GitOps repo yapıları konusunda şu kaynaklara baktım; 
 
 
 
-\## 11.7 Bir Sonraki Öğrenme Hedeflerim
 
-
-
-\- \[ ] Yerel bir Kubernetes cluster'ında (kind/minikube) Argo CD kurup bu repodaki Uptime Kuma'yı Helm chart olarak deploy etmek
-
-\- \[ ] Aynı senaryoyu FluxCD ile tekrarlayıp iki aracı doğrudan karşılaştırmak
-
-\- \[ ] Sealed Secrets veya SOPS ile GitOps'ta secret yönetimini öğrenmek (Git'e düz metin secret koymamak kritik bir konu)
-
-\- \[ ] Argo Rollouts ile canary/blue-green \*\*progressive delivery\*\* denemek
-
-\- \[ ] Policy-as-code için OPA/Gatekeeper veya Kyverno ile GitOps akışına politika kontrolü eklemek
-
-
-
-\---
-
-⬅ \[README'ye dön](../README.md)
 

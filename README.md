@@ -10,7 +10,7 @@ belgelemek amacıyla hazırlanmıştır.
 
 
 
-Bu repo çalışan projenin kendisi değildir.  
+Bu repo çalışan projenin kendisi değildir.
 
 Burada projenin nasıl çalıştığını, kullandığım teknolojilerin ne işe yaradığını,
 
@@ -101,4 +101,72 @@ Projede genel olarak şu yapıyı kurdum:
 Bu çalışma sayesinde sadece araçları kullanmayı değil,
 
 araçların birbirleriyle nasıl bağlantılı çalıştığını anlamaya çalıştım.
+
+\---
+
+
+
+\# 2. Genel Mimari
+
+
+
+Projeyi ilk öğrenirken en çok karıştırdığım konulardan biri
+
+\*\*WSL, Vagrant, VirtualBox ve Ansible'ın birbirleriyle ilişkisi\*\* oldu.
+
+
+
+Hazırladığım ilk mimari şeması:
+
+
+
+!\[GitOps Genel Mimari](images/sema.png)
+
+
+
+\## Sistemin Genel Yapısı
+
+
+
+Projede Windows bilgisayarım üzerinde iki farklı taraf bulunuyor:
+
+
+
+```text
+
+&#x20;                        WINDOWS 11
+
+&#x20;                            │
+
+&#x20;             ┌──────────────┴──────────────┐
+
+&#x20;             │                             │
+
+&#x20;             ▼                             ▼
+
+&#x20;           Vagrant                        WSL
+
+&#x20;             │                             │
+
+&#x20;             ▼                          Ansible
+
+&#x20;        VirtualBox                         │
+
+&#x20;             │                             │
+
+&#x20;             ▼                             │
+
+&#x20;       Ubuntu Sanal Sunucu ◄────── SSH ────┘
+
+&#x20;             │
+
+&#x20;             ├── Docker
+
+&#x20;             ├── Nginx
+
+&#x20;             ├── Uptime Kuma
+
+&#x20;             ├── UFW
+
+&#x20;             └── Fail2ban
 
